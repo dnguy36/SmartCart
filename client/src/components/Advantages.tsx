@@ -2,30 +2,32 @@ import { motion } from "framer-motion";
 import { 
   Clock, 
   DollarSign, 
-  Smartphone, 
-  ShieldCheck 
+  Leaf, 
+  ShoppingBasket, 
+  PieChart,
+  Refrigerator
 } from "lucide-react";
 
 const advantages = [
   {
     icon: <Clock className="h-12 w-12" />,
-    title: "Save Time",
-    description: "SmartCart reduces shopping time by up to 50% with quick scanning and intelligent list organization."
+    title: "Save 3+ Hours Weekly",
+    description: "SmartCart's AI-powered grocery lists and pantry tracking eliminate planning time and reduce store visits by automating your shopping routine."
   },
   {
     icon: <DollarSign className="h-12 w-12" />,
-    title: "Save Money",
-    description: "Our price comparison engine finds the best deals, saving customers an average of 15% on their shopping bills."
+    title: "Reduce Grocery Costs",
+    description: "Save up to 23% on groceries with price tracking across stores, budget controls, and alerts when your favorite items go on sale."
   },
   {
-    icon: <Smartphone className="h-12 w-12" />,
-    title: "Shop Anywhere",
-    description: "Use SmartCart on any device - browse at home and continue shopping on your mobile when in-store."
+    icon: <Leaf className="h-12 w-12" />,
+    title: "Minimize Food Waste",
+    description: "Our pantry management with expiration tracking helps reduce household food waste by up to 40%, saving money while helping the environment."
   },
   {
-    icon: <ShieldCheck className="h-12 w-12" />,
-    title: "Shop Securely",
-    description: "End-to-end encryption and secure payment processing protect your personal and financial information."
+    icon: <Refrigerator className="h-12 w-12" />,
+    title: "Optimize Your Pantry",
+    description: "Always know what's in your pantry, fridge, and freezer with digital inventory management that updates as you shop and cook."
   }
 ];
 
@@ -75,18 +77,18 @@ export default function Advantages() {
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
               >
-                The Smart Way to Shop Online
+                Smarter Grocery Management
               </motion.h3>
               <motion.p 
-                className="mt-3 max-w-3xl text-lg text-gray-500"
+                className="mt-3 max-w-3xl text-lg text-gray-600"
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 viewport={{ once: true }}
               >
-                SmartCart is designed to make online shopping intuitive and efficient. 
-                Our platform learns from your shopping habits to provide personalized 
-                recommendations and streamline your shopping experience.
+                SmartCart revolutionizes how families shop for groceries by connecting your pantry, 
+                shopping list, and budget in one intelligent system. Our AI learns your household's 
+                patterns to predict needs before you run out of essentials.
               </motion.p>
               
               <motion.div 
@@ -97,45 +99,92 @@ export default function Advantages() {
                 viewport={{ once: true }}
               >
                 <div className="flex items-center">
-                  <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="ml-3 text-base text-gray-500">Personalized shopping recommendations</span>
+                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <ShoppingBasket className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="ml-3 text-base text-gray-600">AI-powered meal planning based on your pantry</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="ml-3 text-base text-gray-500">Automated price tracking for items in your wishlist</span>
+                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <Clock className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="ml-3 text-base text-gray-600">Intelligent expiration tracking with timely reminders</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="ml-3 text-base text-gray-500">Smart reordering for frequently purchased items</span>
+                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <PieChart className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="ml-3 text-base text-gray-600">Budget optimization with category-based spending limits</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="ml-3 text-base text-gray-500">Real-time inventory updates from partner stores</span>
+                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <DollarSign className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="ml-3 text-base text-gray-600">Store-specific deals and personalized savings alerts</span>
                 </div>
               </motion.div>
             </div>
             
             <div className="mt-10 lg:mt-0">
               <motion.div 
-                className="relative mx-auto rounded-lg shadow-lg overflow-hidden"
+                className="relative mx-auto rounded-xl shadow-lg overflow-hidden bg-gradient-to-br from-primary/90 to-secondary/90"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
               >
-                <img 
-                  className="w-full" 
-                  src="https://source.unsplash.com/random/?online,shopping,app" 
-                  alt="SmartCart mobile application interface"
-                />
+                <div className="p-8 text-white h-full relative">
+                  {/* Visual mockup of a grocery app screen */}
+                  <div className="relative max-w-xs mx-auto bg-white/10 backdrop-blur-sm rounded-xl p-5 overflow-hidden border border-white/20">
+                    <div className="text-xl font-bold mb-4 text-white">Your Pantry</div>
+                    
+                    {/* Inventory cards */}
+                    <div className="space-y-3 mb-6">
+                      {[
+                        { name: "Milk", qty: "2 gal", days: 5 },
+                        { name: "Eggs", qty: "8 ct", days: 12 },
+                        { name: "Apples", qty: "6 ct", days: 2 },
+                        { name: "Bread", qty: "1 loaf", days: 1 }
+                      ].map((item, i) => (
+                        <div 
+                          key={i} 
+                          className={`p-3 rounded-lg flex justify-between items-center ${
+                            item.days <= 2 ? 'bg-white/20 border border-red-300/30' : 'bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mr-3">
+                              {i % 2 === 0 ? 
+                                <Refrigerator className="h-4 w-4 text-white/80" /> : 
+                                <ShoppingBasket className="h-4 w-4 text-white/80" />
+                              }
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">{item.name}</div>
+                              <div className="text-xs text-white/70">{item.qty}</div>
+                            </div>
+                          </div>
+                          <div className={`text-xs rounded-full px-2 py-1 ${
+                            item.days <= 2 ? 'bg-red-500/30 text-white' : 'bg-white/20 text-white/80'
+                          }`}>
+                            {item.days <= 2 ? `${item.days}d left!` : `${item.days}d left`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Add to shopping list button */}
+                    <div className="bg-white/10 rounded-lg p-3 text-center border border-white/20">
+                      <button className="text-sm font-medium bg-white/20 hover:bg-white/30 rounded-md w-full py-2 transition-colors">
+                        Add Low Items to Shopping List
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Decorative circles */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full transform translate-x-16 -translate-y-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full transform -translate-x-12 translate-y-6"></div>
+                </div>
               </motion.div>
             </div>
           </div>
