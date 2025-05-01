@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Check, ShoppingCart, Clock, DollarSign } from "lucide-react";
+import { Link } from "wouter";
 
 const benefits = [
   {
@@ -92,9 +93,11 @@ export default function CallToAction() {
                   </div>
                 </div>
                 <div>
-                  <Button className="w-full py-6 text-lg">
-                    Get Started — It's Free
-                  </Button>
+                  <Link href="/dashboard">
+                    <Button className="w-full py-6 text-lg">
+                      Get Started — It's Free
+                    </Button>
+                  </Link>
                 </div>
               </div>
               <div className="text-center text-sm text-gray-500">

@@ -1,6 +1,7 @@
 import { ArrowRight, ShoppingCart, Receipt, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 
 export default function Hero() {
   return (
@@ -66,9 +67,11 @@ export default function Hero() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <div className="rounded-md shadow">
-                  <Button size="lg" className="w-full px-8 py-3 text-lg font-medium">
-                    Try for Free
-                  </Button>
+                  <Link href="/dashboard">
+                    <Button size="lg" className="w-full px-8 py-3 text-lg font-medium">
+                      Try for Free
+                    </Button>
+                  </Link>
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-3">
                   <Button size="lg" variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 px-8 py-3 text-lg font-medium">

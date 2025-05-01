@@ -1,11 +1,21 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { Menu, X, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [location] = useLocation();
+  const [isLandingPage, setIsLandingPage] = useState(true);
+  
+  useEffect(() => {
+    // Check if we're on the landing page or an app page
+    setIsLandingPage(location === "/");
+    
+    // Close mobile menu on route change
+    setIsMobileMenuOpen(false);
+  }, [location]);
   
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -20,31 +30,73 @@ export default function Header() {
               <ShoppingCart className="h-8 w-8 text-primary mr-2" />
               <span className="text-primary font-bold text-2xl">SmartCart</span>
             </Link>
-            <nav className="hidden md:ml-10 md:flex md:space-x-8">
-              <Link href="/" className="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">
-                Home
-              </Link>
-              <Link href="#features" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
-                Features
-              </Link>
-              <Link href="#how-it-works" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
-                How It Works
-              </Link>
-              <Link href="#pricing" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
-                Pricing
-              </Link>
-              <Link href="#testimonials" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
-                Testimonials
-              </Link>
-            </nav>
+            
+            {isLandingPage ? (
+              // Landing page navigation
+              <nav className="hidden md:ml-10 md:flex md:space-x-8">
+                <Link href="/" className="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">
+                  Home
+                </Link>
+                <Link href="#features" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                  Features
+                </Link>
+                <Link href="#how-it-works" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                  How It Works
+                </Link>
+                <Link href="#pricing" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                  Pricing
+                </Link>
+                <Link href="#testimonials" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                  Testimonials
+                </Link>
+              </nav>
+            ) : (
+              // App navigation
+              <nav className="hidden md:ml-10 md:flex md:space-x-8">
+                <Link href="/dashboard" className={`px-3 py-2 text-sm font-medium ${location === "/dashboard" ? "text-primary" : "text-gray-500 hover:text-primary"}`}>
+                  Dashboard
+                </Link>
+                <Link href="/scanner" className={`px-3 py-2 text-sm font-medium ${location === "/scanner" ? "text-primary" : "text-gray-500 hover:text-primary"}`}>
+                  Scanner
+                </Link>
+                <Link href="/pantry" className={`px-3 py-2 text-sm font-medium ${location === "/pantry" ? "text-primary" : "text-gray-500 hover:text-primary"}`}>
+                  Pantry
+                </Link>
+                <Link href="/recipes" className={`px-3 py-2 text-sm font-medium ${location === "/recipes" ? "text-primary" : "text-gray-500 hover:text-primary"}`}>
+                  Recipes
+                </Link>
+                <Link href="/prices" className={`px-3 py-2 text-sm font-medium ${location === "/prices" ? "text-primary" : "text-gray-500 hover:text-primary"}`}>
+                  Prices
+                </Link>
+                <Link href="/analytics" className={`px-3 py-2 text-sm font-medium ${location === "/analytics" ? "text-primary" : "text-gray-500 hover:text-primary"}`}>
+                  Analytics
+                </Link>
+              </nav>
+            )}
           </div>
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-              Sign In
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90">
-              Try for Free
-            </Button>
+            {isLandingPage ? (
+              // Landing page buttons
+              <>
+                <Link href="/dashboard">
+                  <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/dashboard">
+                  <Button className="bg-primary hover:bg-primary/90">
+                    Try for Free
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              // App buttons - user is already signed in
+              <Link href="/">
+                <Button variant="ghost" className="text-gray-500 hover:text-primary">
+                  Log Out
+                </Button>
+              </Link>
+            )}
           </div>
           <div className="flex md:hidden">
             <button
@@ -73,30 +125,73 @@ export default function Header() {
           transition={{ duration: 0.3 }}
         >
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">
-              Home
-            </Link>
-            <Link href="#features" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
-              Features
-            </Link>
-            <Link href="#how-it-works" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
-              How It Works
-            </Link>
-            <Link href="#pricing" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
-              Pricing
-            </Link>
-            <Link href="#testimonials" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
-              Testimonials
-            </Link>
+            {isLandingPage ? (
+              // Landing page mobile navigation
+              <>
+                <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">
+                  Home
+                </Link>
+                <Link href="#features" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                  Features
+                </Link>
+                <Link href="#how-it-works" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                  How It Works
+                </Link>
+                <Link href="#pricing" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                  Pricing
+                </Link>
+                <Link href="#testimonials" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                  Testimonials
+                </Link>
+              </>
+            ) : (
+              // App mobile navigation
+              <>
+                <Link href="/dashboard" className={`block px-3 py-2 rounded-md text-base font-medium ${location === "/dashboard" ? "text-primary bg-gray-50" : "text-gray-500 hover:bg-gray-50 hover:text-primary"}`}>
+                  Dashboard
+                </Link>
+                <Link href="/scanner" className={`block px-3 py-2 rounded-md text-base font-medium ${location === "/scanner" ? "text-primary bg-gray-50" : "text-gray-500 hover:bg-gray-50 hover:text-primary"}`}>
+                  Scanner
+                </Link>
+                <Link href="/pantry" className={`block px-3 py-2 rounded-md text-base font-medium ${location === "/pantry" ? "text-primary bg-gray-50" : "text-gray-500 hover:bg-gray-50 hover:text-primary"}`}>
+                  Pantry
+                </Link>
+                <Link href="/recipes" className={`block px-3 py-2 rounded-md text-base font-medium ${location === "/recipes" ? "text-primary bg-gray-50" : "text-gray-500 hover:bg-gray-50 hover:text-primary"}`}>
+                  Recipes
+                </Link>
+                <Link href="/prices" className={`block px-3 py-2 rounded-md text-base font-medium ${location === "/prices" ? "text-primary bg-gray-50" : "text-gray-500 hover:bg-gray-50 hover:text-primary"}`}>
+                  Prices
+                </Link>
+                <Link href="/analytics" className={`block px-3 py-2 rounded-md text-base font-medium ${location === "/analytics" ? "text-primary bg-gray-50" : "text-gray-500 hover:bg-gray-50 hover:text-primary"}`}>
+                  Analytics
+                </Link>
+              </>
+            )}
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200">
             <div className="flex flex-col space-y-2 px-5 pb-2">
-              <Button className="w-full bg-primary hover:bg-primary/90">
-                Try for Free
-              </Button>
-              <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
-                Sign In
-              </Button>
+              {isLandingPage ? (
+                // Landing page mobile buttons
+                <>
+                  <Link href="/dashboard">
+                    <Button className="w-full bg-primary hover:bg-primary/90">
+                      Try for Free
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard">
+                    <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
+                      Sign In
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                // App mobile buttons
+                <Link href="/">
+                  <Button variant="outline" className="w-full border-gray-200 text-gray-500 hover:text-primary">
+                    Log Out
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </motion.div>
