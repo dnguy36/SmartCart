@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Receipt, Package, PieChart, Settings, Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Receipt, Package, PieChart, Settings, Menu, X, LogOut } from 'lucide-react';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  isAuthenticated: boolean;
+  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, setIsAuthenticated }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,6 +34,12 @@ const Navbar: React.FC = () => {
     setIsOpen(false);
   };
 
+  const handleSignOut = () => {
+    localStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+    navigate('/signin');
+  };
+
   const navItems = [
     { path: '/', icon: <ShoppingCart size={20} />, label: 'Dashboard' },
     { path: '/receipts', icon: <Receipt size={20} />, label: 'Receipts' },
@@ -35,6 +47,10 @@ const Navbar: React.FC = () => {
     { path: '/budget', icon: <PieChart size={20} />, label: 'Budget' },
     { path: '/settings', icon: <Settings size={20} />, label: 'Settings' }
   ];
+
+  if (!isAuthenticated) {
+    return null; // Don't show navbar on sign in page
+  }
 
   return (
     <header 
@@ -67,6 +83,13 @@ const Navbar: React.FC = () => {
               <span>{item.label}</span>
             </Link>
           ))}
+          <button
+            onClick={handleSignOut}
+            className="flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors text-gray-600 hover:text-red-600 hover:bg-red-50"
+          >
+            <LogOut size={20} />
+            <span>Sign Out</span>
+          </button>
         </nav>
 
         {/* Mobile menu button */}
@@ -97,6 +120,13 @@ const Navbar: React.FC = () => {
               <span>{item.label}</span>
             </Link>
           ))}
+          <button
+            onClick={handleSignOut}
+            className="flex items-center space-x-2 px-4 py-3 rounded-lg transition-colors text-gray-600 hover:text-red-600 hover:bg-red-50"
+          >
+            <LogOut size={20} />
+            <span>Sign Out</span>
+          </button>
         </nav>
       )}
     </header>
