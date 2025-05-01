@@ -5,6 +5,27 @@ import { newsletterSubscriptionSchema, contactSubmissionSchema } from "@shared/s
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  console.log("Setting up original routes from routes.ts... (check for conflicts)");
+  
+  // Check for any existing auth routes in the original route setup
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route && (
+        middleware.route.path.includes('/auth') || 
+        middleware.route.path.includes('/login')
+    )) {
+      console.warn('⚠️ CONFLICTING AUTH ROUTE FOUND:', middleware.route.path);
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route && (
+            handler.route.path.includes('/auth') || 
+            handler.route.path.includes('/login')
+        )) {
+          console.warn('⚠️ CONFLICTING AUTH ROUTE FOUND IN ROUTER:', handler.route.path);
+        }
+      });
+    }
+  });
+  
   // Newsletter subscription route
   app.post("/api/newsletter", async (req, res) => {
     try {

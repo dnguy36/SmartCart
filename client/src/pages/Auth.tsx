@@ -33,7 +33,7 @@ export default function Auth() {
     return password.length >= 6;
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -58,18 +58,44 @@ export default function Auth() {
     // Show loading state
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Call the real MongoDB authentication
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Store the token in localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
       toast({
         title: "Login Successful",
         description: "Welcome back to SmartCart!",
       });
+      
       setLocation("/dashboard");
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -103,15 +129,45 @@ export default function Auth() {
     // Show loading state
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Call the real MongoDB registration
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username: name,
+          email, 
+          password 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // Store the token in localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
       toast({
         title: "Registration Successful",
         description: "Your account has been created!",
       });
+      
       setLocation("/dashboard");
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -279,6 +335,11 @@ export default function Auth() {
               </Card>
             </TabsContent>
           </Tabs>
+          
+          {/* Debug link */}
+          <div className="mt-4 text-center text-xs text-gray-500">
+            <a href="/login-debug" className="hover:underline">Debug Login</a>
+          </div>
         </div>
       </div>
 

@@ -1,10 +1,72 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { createServer as createHttpServer, type Server } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { connectDB } from "./db/mongodb";
+import authRoutes from "./routes/auth";
+import protectedRoutes from "./routes/protected";
+import receiptRoutes from "./routes/receipts";
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Verify AWS credentials are loaded
+if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION) {
+  console.error('AWS credentials not found in environment variables');
+  process.exit(1);
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Connect to MongoDB - Make sure this happens before server starts
+connectDB().catch(error => {
+  console.error('Failed to connect to MongoDB:', error);
+  process.exit(1);
+});
+
+// Route intercept middleware - catch ALL auth requests
+app.use((req, res, next) => {
+  console.log(`[Route Intercept] ${req.method} ${req.path}`);
+  
+  // Intercept auth and login requests and route them to our MongoDB auth
+  if (req.path.includes('/api/auth') || req.path.includes('/api/login')) {
+    console.log('🚨 INTERCEPTING AUTH REQUEST:', req.method, req.path);
+    // These will be handled by our authRoutes middleware
+  }
+  
+  next();
+});
+
+// Debug route - Must be defined before other middleware
+app.get('/api/debug/routes', (req, res) => {
+  console.log('Debugging routes...');
+  const routes: {method: string, path: string}[] = [];
+  
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) { // routes registered directly on the app
+      routes.push({
+        method: Object.keys(middleware.route.methods)[0].toUpperCase(),
+        path: middleware.route.path
+      });
+    } else if (middleware.name === 'router') { // router middleware
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) {
+          const method = Object.keys(handler.route.methods)[0].toUpperCase();
+          routes.push({
+            method,
+            path: handler.route.path
+          });
+        }
+      });
+    }
+  });
+  
+  console.log('Registered Routes:', routes);
+  res.json({ routes });
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -36,35 +98,95 @@ app.use((req, res, next) => {
   next();
 });
 
+// Register auth routes FIRST
+app.use('/api/auth', authRoutes);
+
+// Register protected routes 
+app.use('/api/protected', protectedRoutes);
+
+// Register receipt routes
+app.use('/api/receipts', receiptRoutes);
+
+// Create and start the server
 (async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  try {
+    // Check for running instance
+    console.log('Starting server...');
+    
+    // Register other routes from the original codebase
+    await registerRoutes(app);
+    
+    // Error handling
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+  
+      res.status(status).json({ message });
+      throw err;
+    });
+  
+    // Create HTTP server
+    const server = createHttpServer(app);
+  
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+    
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = 5000;
+    server.listen(port, () => {
+      // Log all registered routes
+      console.log('Server started on port', port);
+      console.log('Registered endpoints:');
+      
+      // Log routes in a more readable format
+      const routes: {method: string, path: string}[] = [];
+      
+      app._router.stack.forEach((middleware: any) => {
+        if (middleware.route) {
+          console.log(`${Object.keys(middleware.route.methods)[0].toUpperCase()}: ${middleware.route.path}`);
+          routes.push({
+            method: Object.keys(middleware.route.methods)[0].toUpperCase(),
+            path: middleware.route.path
+          });
+        } else if (middleware.name === 'router') {
+          console.log(`Router: ${middleware.regexp}`);
+          
+          // Try to log router paths
+          try {
+            if (middleware.handle && middleware.handle.stack) {
+              middleware.handle.stack.forEach((handler: any) => {
+                if (handler.route) {
+                  const method = Object.keys(handler.route.methods)[0].toUpperCase();
+                  console.log(`  ${method}: ${handler.route.path}`);
+                  routes.push({
+                    method,
+                    path: handler.route.path
+                  });
+                }
+              });
+            }
+          } catch (err) {
+            console.log('Could not log router paths:', err);
+          }
+        }
+      });
+      
+      // Log in sorted order for easier reading
+      console.log('\nAll routes:');
+      routes
+        .sort((a, b) => a.path.localeCompare(b.path))
+        .forEach(r => console.log(`${r.method.padEnd(6)}: ${r.path}`));
+    });
+  } catch (error) {
+    console.error('Error creating server:', error);
+    process.exit(1);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();
