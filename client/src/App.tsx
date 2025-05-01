@@ -10,12 +10,14 @@ import Pantry from "@/pages/Pantry";
 import Recipes from "@/pages/Recipes";
 import Prices from "@/pages/Prices";
 import Analytics from "@/pages/Analytics";
+import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/auth" component={Auth} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/scanner" component={Scanner} />
       <Route path="/pantry" component={Pantry} />

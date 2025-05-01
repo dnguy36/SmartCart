@@ -34,21 +34,57 @@ export default function Header() {
             {isLandingPage ? (
               // Landing page navigation
               <nav className="hidden md:ml-10 md:flex md:space-x-8">
-                <Link href="/" className="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">
+                <a href="/" className="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium">
                   Home
-                </Link>
-                <Link href="#features" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                </a>
+                <a 
+                  href="#features" 
+                  className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Features
-                </Link>
-                <Link href="#how-it-works" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                </a>
+                <a 
+                  href="#how-it-works" 
+                  className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   How It Works
-                </Link>
-                <Link href="#pricing" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                </a>
+                <a 
+                  href="#pricing" 
+                  className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Pricing
-                </Link>
-                <Link href="#testimonials" className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium">
+                </a>
+                <a 
+                  href="#testimonials" 
+                  className="text-gray-500 hover:text-primary px-3 py-2 text-sm font-medium"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Testimonials
-                </Link>
+                </a>
               </nav>
             ) : (
               // App navigation
@@ -78,7 +114,7 @@ export default function Header() {
             {isLandingPage ? (
               // Landing page buttons
               <>
-                <Link href="/dashboard">
+                <Link href="/auth">
                   <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
                     Sign In
                   </Button>
@@ -128,21 +164,61 @@ export default function Header() {
             {isLandingPage ? (
               // Landing page mobile navigation
               <>
-                <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">
+                <a href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">
                   Home
-                </Link>
-                <Link href="#features" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                </a>
+                <a 
+                  href="#features" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                      setIsMobileMenuOpen(false);
+                    }
+                  }}
+                >
                   Features
-                </Link>
-                <Link href="#how-it-works" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                </a>
+                <a 
+                  href="#how-it-works" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                      setIsMobileMenuOpen(false);
+                    }
+                  }}
+                >
                   How It Works
-                </Link>
-                <Link href="#pricing" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                </a>
+                <a 
+                  href="#pricing" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                      setIsMobileMenuOpen(false);
+                    }
+                  }}
+                >
                   Pricing
-                </Link>
-                <Link href="#testimonials" className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary">
+                </a>
+                <a 
+                  href="#testimonials" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:bg-gray-50 hover:text-primary"
+                  onClick={(e) => {
+                    if (location === "/") {
+                      e.preventDefault();
+                      document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' });
+                      setIsMobileMenuOpen(false);
+                    }
+                  }}
+                >
                   Testimonials
-                </Link>
+                </a>
               </>
             ) : (
               // App mobile navigation
@@ -178,7 +254,7 @@ export default function Header() {
                       Try for Free
                     </Button>
                   </Link>
-                  <Link href="/dashboard">
+                  <Link href="/auth">
                     <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
                       Sign In
                     </Button>
