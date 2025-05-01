@@ -201,9 +201,6 @@ export default function Pantry() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -228,15 +225,6 @@ export default function Pantry() {
                                 {item.daysUntilExpiry < 0 && <AlertCircle className="mr-1 h-3 w-3" />}
                                 {getExpiryStatusText(item.daysUntilExpiry)}
                               </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <Button 
-                                variant="ghost" 
-                                className="text-primary hover:text-primary/90 hover:bg-primary/10"
-                                onClick={() => consumeItem(item.id)}
-                              >
-                                Consume
-                              </Button>
                             </td>
                           </tr>
                         ))}
