@@ -1,0 +1,97 @@
+I need help building the frontend for SmartCart, an intelligent grocery management and recipe planning application. Here are the key features that need to be implemented:
+
+1. Smart Receipt Scanning
+   - OCR (Optical Character Recognition) integration using Tesseract
+   - Upload receipt images or take photos directly
+   - Automatic item and price extraction
+   - Progress indicator during scanning
+   - Preview and confirmation of scanned items
+
+2. Pantry Management System
+   - Inventory tracking with categories
+   - Location-based organization (pantry, refrigerator, freezer, other)
+   - Expiry date tracking and notifications
+   - Quantity and unit management
+   - Consumption status tracking
+   - Search and filter functionality
+
+3. AI-Powered Recipe Generation
+   - Recipe suggestions based on available ingredients
+   - Filter recipes by dietary restrictions/preferences
+   - Recipe difficulty levels
+   - Cooking time estimates
+   - Nutritional information
+   - Step-by-step cooking instructions
+   - Missing ingredients list with alternatives
+   - Save favorite recipes
+   - Share recipes functionality
+
+4. Smart Price Comparison Engine
+   - Real-time price comparison across local stores
+   - Store location mapping
+   - Price history tracking
+   - Best deals and discounts
+   - Store-specific promotions
+   - Distance-based store sorting
+   - Price alerts for favorite items
+   - Shopping list optimization by store
+
+5. Smart Analytics Dashboard
+   - Pantry statistics and insights
+   - Total value calculation
+   - Items by location breakdown
+   - Category distribution
+   - Expiring items alerts
+   - Consumption patterns
+   - Recipe usage statistics
+   - Cost savings analysis
+
+6. User Interface Requirements
+   - Modern, clean design using TailwindCSS
+   - Responsive layout for all devices
+   - Intuitive navigation
+   - Loading states and animations
+   - Error handling and user feedback
+   - Accessible components
+   - Interactive recipe cards
+   - Store comparison tables
+   - Interactive maps for store locations
+
+7. Key Pages and Components
+   - Dashboard/Home page
+   - Receipt Scanner interface
+   - Pantry Inventory management
+   - Recipe Generator and Browser
+   - Price Comparison Engine
+   - Store Locator
+   - Shopping List Optimizer
+   - Analytics and statistics view
+   - Settings and preferences
+
+Technical Stack:
+- React 18 with TypeScript
+- Vite as the build tool
+- TailwindCSS for styling
+- Tesseract.js for OCR
+- React Router for navigation
+- Lucide React for icons
+- Map integration for store locations
+- AI/ML integration for recipe generation
+- Real-time price comparison APIs
+
+The application should focus on:
+- Seamless receipt scanning experience
+- Efficient pantry management
+- Intelligent recipe suggestions
+- Smart price comparison
+- User-friendly interface
+- Performance optimization
+- Data accuracy and reliability
+- Real-time updates for prices and availability
+
+Please help me build a modern, functional frontend that implements these smart features while maintaining good performance and accessibility standards. The interface should make it easy for users to:
+- Scan and manage their pantry
+- Discover new recipes based on available ingredients
+- Find the best prices across local stores
+- Track their grocery spending
+- Optimize their shopping trips
