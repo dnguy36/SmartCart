@@ -6,7 +6,9 @@ import { connectDB } from "./db/mongodb";
 import authRoutes from "./routes/auth";
 import protectedRoutes from "./routes/protected";
 import receiptRoutes from "./routes/receipts";
+import pantryRoutes from "./routes/pantry";
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -17,13 +19,34 @@ if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !pro
   process.exit(1);
 }
 
+// Verify MongoDB URI is loaded
+if (!process.env.MONGODB_URI) {
+  console.error('MongoDB URI not found in environment variables');
+  process.exit(1);
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Connect to MongoDB - Make sure this happens before server starts
-connectDB().catch(error => {
+// Connect to MongoDB directly using the reliable method from our test script
+// This replaces the connectDB() call
+console.log('Attempting to connect to MongoDB...');
+mongoose.connect(process.env.MONGODB_URI, {
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  serverSelectionTimeoutMS: 30000
+})
+.then(() => {
+  console.log('✅ Successfully connected to MongoDB!');
+  
+  // Continue with server initialization after successful connection
+  startServer();
+})
+.catch((error) => {
   console.error('Failed to connect to MongoDB:', error);
+  console.log('Please check your connection string and ensure your MongoDB Atlas cluster is accessible.');
+  console.log('Current connection string format:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//USERNAME:PASSWORD@'));
   process.exit(1);
 });
 
@@ -107,86 +130,91 @@ app.use('/api/protected', protectedRoutes);
 // Register receipt routes
 app.use('/api/receipts', receiptRoutes);
 
-// Create and start the server
-(async () => {
-  try {
-    // Check for running instance
-    console.log('Starting server...');
-    
-    // Register other routes from the original codebase
-    await registerRoutes(app);
-    
-    // Error handling
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-  
-      res.status(status).json({ message });
-      throw err;
-    });
-  
-    // Create HTTP server
-    const server = createHttpServer(app);
-  
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
-    
-    // ALWAYS serve the app on port 5000
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = 5000;
-    server.listen(port, () => {
-      // Log all registered routes
-      console.log('Server started on port', port);
-      console.log('Registered endpoints:');
+// Register pantry routes
+app.use('/api/pantry', pantryRoutes);
+
+function startServer() {
+  // Create and start the server
+  (async () => {
+    try {
+      // Check for running instance
+      console.log('Starting server...');
       
-      // Log routes in a more readable format
-      const routes: {method: string, path: string}[] = [];
+      // Register other routes from the original codebase
+      await registerRoutes(app);
       
-      app._router.stack.forEach((middleware: any) => {
-        if (middleware.route) {
-          console.log(`${Object.keys(middleware.route.methods)[0].toUpperCase()}: ${middleware.route.path}`);
-          routes.push({
-            method: Object.keys(middleware.route.methods)[0].toUpperCase(),
-            path: middleware.route.path
-          });
-        } else if (middleware.name === 'router') {
-          console.log(`Router: ${middleware.regexp}`);
-          
-          // Try to log router paths
-          try {
-            if (middleware.handle && middleware.handle.stack) {
-              middleware.handle.stack.forEach((handler: any) => {
-                if (handler.route) {
-                  const method = Object.keys(handler.route.methods)[0].toUpperCase();
-                  console.log(`  ${method}: ${handler.route.path}`);
-                  routes.push({
-                    method,
-                    path: handler.route.path
-                  });
-                }
-              });
-            }
-          } catch (err) {
-            console.log('Could not log router paths:', err);
-          }
-        }
+      // Error handling
+      app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+        const status = err.status || err.statusCode || 500;
+        const message = err.message || "Internal Server Error";
+    
+        res.status(status).json({ message });
+        throw err;
       });
+    
+      // Create HTTP server
+      const server = createHttpServer(app);
+    
+      // importantly only setup vite in development and after
+      // setting up all the other routes so the catch-all route
+      // doesn't interfere with the other routes
+      if (app.get("env") === "development") {
+        await setupVite(app, server);
+      } else {
+        serveStatic(app);
+      }
       
-      // Log in sorted order for easier reading
-      console.log('\nAll routes:');
-      routes
-        .sort((a, b) => a.path.localeCompare(b.path))
-        .forEach(r => console.log(`${r.method.padEnd(6)}: ${r.path}`));
-    });
-  } catch (error) {
-    console.error('Error creating server:', error);
-    process.exit(1);
-  }
-})();
+      // ALWAYS serve the app on port 5000
+      // this serves both the API and the client.
+      // It is the only port that is not firewalled.
+      const port = 5000;
+      server.listen(port, () => {
+        // Log all registered routes
+        console.log('Server started on port', port);
+        console.log('Registered endpoints:');
+        
+        // Log routes in a more readable format
+        const routes: {method: string, path: string}[] = [];
+        
+        app._router.stack.forEach((middleware: any) => {
+          if (middleware.route) {
+            console.log(`${Object.keys(middleware.route.methods)[0].toUpperCase()}: ${middleware.route.path}`);
+            routes.push({
+              method: Object.keys(middleware.route.methods)[0].toUpperCase(),
+              path: middleware.route.path
+            });
+          } else if (middleware.name === 'router') {
+            console.log(`Router: ${middleware.regexp}`);
+            
+            // Try to log router paths
+            try {
+              if (middleware.handle && middleware.handle.stack) {
+                middleware.handle.stack.forEach((handler: any) => {
+                  if (handler.route) {
+                    const method = Object.keys(handler.route.methods)[0].toUpperCase();
+                    console.log(`  ${method}: ${handler.route.path}`);
+                    routes.push({
+                      method,
+                      path: handler.route.path
+                    });
+                  }
+                });
+              }
+            } catch (err) {
+              console.log('Could not log router paths:', err);
+            }
+          }
+        });
+        
+        // Log in sorted order for easier reading
+        console.log('\nAll routes:');
+        routes
+          .sort((a, b) => a.path.localeCompare(b.path))
+          .forEach(r => console.log(`${r.method.padEnd(6)}: ${r.path}`));
+      });
+    } catch (error) {
+      console.error('Error creating server:', error);
+      process.exit(1);
+    }
+  })();
+}

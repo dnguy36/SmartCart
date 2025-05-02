@@ -10,8 +10,16 @@ if (!MONGODB_URI) {
   throw new Error('MONGODB_URI is not defined in environment variables');
 }
 
-// Create a single connection for all features
-const connection = mongoose.createConnection(MONGODB_URI);
+// Connection options with increased timeout
+const connectionOptions: mongoose.ConnectOptions = {
+  connectTimeoutMS: 30000,  // Increase timeout to 30 seconds
+  socketTimeoutMS: 45000,   // Increase socket timeout to 45 seconds
+  serverSelectionTimeoutMS: 30000, // Increase server selection timeout
+  heartbeatFrequencyMS: 10000,     // Check server every 10 seconds
+};
+
+// Create a connection with options
+const connection = mongoose.createConnection(MONGODB_URI, connectionOptions);
 
 // Connection event handlers
 connection.on('connected', () => {
@@ -29,11 +37,25 @@ connection.on('disconnected', () => {
 // Main connection function
 export async function connectDB() {
   try {
+    console.log('Attempting to connect to MongoDB...');
     await connection.asPromise();
     console.log('MongoDB connection established successfully');
+    
+    // Test the connection with a simple operation
+    if (connection.db) {
+      const admin = connection.db.admin();
+      const result = await admin.ping();
+      console.log('MongoDB connection is working. Ping result:', result);
+    }
+    
+    return connection;
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
+    console.log('Please check your connection string and ensure your MongoDB Atlas cluster is accessible.');
+    console.log('Current connection string format:', MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//USERNAME:PASSWORD@'));
+    
+    // Don't exit the process here - let the application handle the error
+    throw error;
   }
 }
 
@@ -44,7 +66,6 @@ export async function disconnectDB() {
     console.log('MongoDB connection closed successfully');
   } catch (error) {
     console.error('Error closing MongoDB connection:', error);
-    process.exit(1);
   }
 }
 

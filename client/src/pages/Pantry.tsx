@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Filter, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,28 +9,203 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { format, differenceInDays, addDays } from "date-fns";
 
-// Mock data for demonstration
-const PANTRY_ITEMS = [
-  { id: 1, name: "Organic Apples", quantity: 5, unit: "pcs", location: "refrigerator", category: "Produce", expiry: "2023-05-10", daysUntilExpiry: 3 },
-  { id: 2, name: "Whole Milk", quantity: 1, unit: "gal", location: "refrigerator", category: "Dairy", expiry: "2023-05-07", daysUntilExpiry: 0 },
-  { id: 3, name: "Wheat Bread", quantity: 1, unit: "loaf", location: "pantry", category: "Bakery", expiry: "2023-05-12", daysUntilExpiry: 5 },
-  { id: 4, name: "Chicken Breast", quantity: 2, unit: "lbs", location: "freezer", category: "Meat", expiry: "2023-06-15", daysUntilExpiry: 30 },
-  { id: 5, name: "Spinach", quantity: 1, unit: "bunch", location: "refrigerator", category: "Produce", expiry: "2023-05-06", daysUntilExpiry: -1 },
-  { id: 6, name: "Rice", quantity: 5, unit: "lbs", location: "pantry", category: "Grains", expiry: "2023-12-31", daysUntilExpiry: 200 },
-  { id: 7, name: "Pasta", quantity: 3, unit: "boxes", location: "pantry", category: "Pasta", expiry: "2023-12-15", daysUntilExpiry: 190 },
-  { id: 8, name: "Cereal", quantity: 2, unit: "boxes", location: "pantry", category: "Breakfast", expiry: "2023-08-30", daysUntilExpiry: 90 },
-];
+interface PantryItem {
+  _id: string;
+  name: string;
+  quantity: number | string;
+  unit: string;
+  location: string;
+  category: string;
+  expiry: string;
+  addedAt: string;
+}
 
 export default function Pantry() {
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newItem, setNewItem] = useState({
+    name: "",
+    quantity: "1",
+    unit: "pcs",
+    location: "pantry",
+    category: "Other",
+    expiry: format(addDays(new Date(), 30), "yyyy-MM-dd"),
+  });
   const { toast } = useToast();
 
+  useEffect(() => {
+    fetchPantryItems();
+  }, []);
+
+  const fetchPantryItems = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      // First check if the token is valid
+      const authCheck = await fetch('/api/auth/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const authData = await authCheck.json();
+      
+      if (!authCheck.ok || !authData.isAuthenticated) {
+        // Clear invalid token
+        localStorage.removeItem('token');
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
+      const response = await fetch('/api/pantry/items', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to fetch pantry items');
+      }
+
+      const data = await response.json();
+      setPantryItems(data.items || []);
+    } catch (err) {
+      console.error('Error fetching pantry items:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to fetch pantry items",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addItem = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      // First check if the token is valid
+      const authCheck = await fetch('/api/auth/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const authData = await authCheck.json();
+      
+      if (!authCheck.ok || !authData.isAuthenticated) {
+        // Clear invalid token
+        localStorage.removeItem('token');
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
+      const response = await fetch('/api/pantry/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          items: [{
+            name: newItem.name,
+            quantity: isNaN(Number(newItem.quantity)) ? newItem.quantity : Number(newItem.quantity),
+            unit: newItem.unit,
+            location: newItem.location,
+            category: newItem.category,
+            expiry: new Date(newItem.expiry),
+          }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add item to pantry');
+      }
+
+      toast({
+        title: "Item Added",
+        description: "Item has been added to your pantry.",
+      });
+
+      // Reset form and close dialog
+      setNewItem({
+        name: "",
+        quantity: "1",
+        unit: "pcs",
+        location: "pantry",
+        category: "Other",
+        expiry: format(addDays(new Date(), 30), "yyyy-MM-dd"),
+      });
+      setIsAddDialogOpen(false);
+      
+      // Refresh the list
+      fetchPantryItems();
+    } catch (err) {
+      console.error('Error adding item to pantry:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to add item to pantry",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const consumeItem = async (id: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      // This would be implemented in a real app
+      // For now, just show a toast
+      toast({
+        title: "Item Consumed",
+        description: "Item has been marked as consumed and removed from pantry.",
+      });
+      
+      // Refresh the list
+      fetchPantryItems();
+    } catch (err) {
+      console.error('Error consuming item:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to consume item",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Calculate days until expiry for each item
+  const itemsWithExpiryDays = pantryItems.map(item => {
+    const expiryDate = new Date(item.expiry);
+    const daysUntilExpiry = differenceInDays(expiryDate, new Date());
+    return { ...item, daysUntilExpiry };
+  });
+
   // Filter items based on search query and filters
-  const filteredItems = PANTRY_ITEMS
+  const filteredItems = itemsWithExpiryDays
     .filter(item => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
       (locationFilter === "all" || item.location === locationFilter) &&
@@ -39,20 +214,6 @@ export default function Pantry() {
        (activeTab === "expiring-soon" && item.daysUntilExpiry >= 0 && item.daysUntilExpiry <= 7) ||
        (activeTab === "expired" && item.daysUntilExpiry < 0))
     );
-
-  const consumeItem = (id: number) => {
-    toast({
-      title: "Item Consumed",
-      description: "Item has been marked as consumed and removed from pantry.",
-    });
-  };
-
-  const addToPantry = () => {
-    toast({
-      title: "Add New Item",
-      description: "New item form would open in a real implementation.",
-    });
-  };
 
   const getExpiryStatusColor = (daysUntilExpiry: number) => {
     if (daysUntilExpiry < 0) return "bg-red-100 text-red-800";
@@ -68,6 +229,16 @@ export default function Pantry() {
     return "Good for a while";
   };
 
+  const formatQuantity = (quantity: number | string, unit: string) => {
+    if (typeof quantity === 'number') {
+      return `${quantity} ${unit}`;
+    } else if (quantity === 'by weight') {
+      return 'By weight';
+    } else {
+      return `${quantity} ${unit}`;
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -79,9 +250,126 @@ export default function Pantry() {
               Track, organize, and manage your food inventory
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90" onClick={addToPantry}>
-            <Plus className="mr-2 h-4 w-4" /> Add Item
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" /> Add Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Item</DialogTitle>
+                <DialogDescription>
+                  Add a new item to your pantry inventory.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                    className="col-span-3"
+                    placeholder="Item name"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="quantity" className="text-right">
+                    Quantity
+                  </Label>
+                  <Input
+                    id="quantity"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
+                    className="col-span-3"
+                    placeholder="Quantity"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="unit" className="text-right">
+                    Unit
+                  </Label>
+                  <Select value={newItem.unit} onValueChange={(value) => setNewItem({...newItem, unit: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pcs">Pieces</SelectItem>
+                      <SelectItem value="lbs">Pounds</SelectItem>
+                      <SelectItem value="oz">Ounces</SelectItem>
+                      <SelectItem value="kg">Kilograms</SelectItem>
+                      <SelectItem value="g">Grams</SelectItem>
+                      <SelectItem value="boxes">Boxes</SelectItem>
+                      <SelectItem value="cans">Cans</SelectItem>
+                      <SelectItem value="bottles">Bottles</SelectItem>
+                      <SelectItem value="weight">By Weight</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="location" className="text-right">
+                    Location
+                  </Label>
+                  <Select value={newItem.location} onValueChange={(value) => setNewItem({...newItem, location: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pantry">Pantry</SelectItem>
+                      <SelectItem value="refrigerator">Refrigerator</SelectItem>
+                      <SelectItem value="freezer">Freezer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Category
+                  </Label>
+                  <Select value={newItem.category} onValueChange={(value) => setNewItem({...newItem, category: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Produce">Produce</SelectItem>
+                      <SelectItem value="Dairy">Dairy</SelectItem>
+                      <SelectItem value="Meat">Meat</SelectItem>
+                      <SelectItem value="Bakery">Bakery</SelectItem>
+                      <SelectItem value="Grains">Grains</SelectItem>
+                      <SelectItem value="Pasta">Pasta</SelectItem>
+                      <SelectItem value="Breakfast">Breakfast</SelectItem>
+                      <SelectItem value="Canned">Canned Goods</SelectItem>
+                      <SelectItem value="Frozen">Frozen Foods</SelectItem>
+                      <SelectItem value="Snacks">Snacks</SelectItem>
+                      <SelectItem value="Beverages">Beverages</SelectItem>
+                      <SelectItem value="Condiments">Condiments</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="expiry" className="text-right">
+                    Expiry Date
+                  </Label>
+                  <Input
+                    id="expiry"
+                    type="date"
+                    value={newItem.expiry}
+                    onChange={(e) => setNewItem({...newItem, expiry: e.target.value})}
+                    className="col-span-3"
+                    min={format(new Date(), "yyyy-MM-dd")}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={addItem} disabled={!newItem.name}>Add to Pantry</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -90,7 +378,7 @@ export default function Pantry() {
               <CardTitle className="text-lg">Total Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{PANTRY_ITEMS.length}</p>
+              <p className="text-3xl font-bold">{isLoading ? "..." : pantryItems.length}</p>
               <p className="text-sm text-gray-500">Items in your pantry</p>
             </CardContent>
           </Card>
@@ -99,7 +387,7 @@ export default function Pantry() {
               <CardTitle className="text-lg">Expiring Soon</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{PANTRY_ITEMS.filter(item => item.daysUntilExpiry >= 0 && item.daysUntilExpiry <= 7).length}</p>
+              <p className="text-3xl font-bold">{isLoading ? "..." : itemsWithExpiryDays.filter(item => item.daysUntilExpiry >= 0 && item.daysUntilExpiry <= 7).length}</p>
               <p className="text-sm text-gray-500">Items expiring in 7 days</p>
             </CardContent>
           </Card>
@@ -108,7 +396,7 @@ export default function Pantry() {
               <CardTitle className="text-lg">Expired</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{PANTRY_ITEMS.filter(item => item.daysUntilExpiry < 0).length}</p>
+              <p className="text-3xl font-bold">{isLoading ? "..." : itemsWithExpiryDays.filter(item => item.daysUntilExpiry < 0).length}</p>
               <p className="text-sm text-gray-500">Items that have expired</p>
             </CardContent>
           </Card>
@@ -159,6 +447,12 @@ export default function Pantry() {
                     <SelectItem value="Grains">Grains</SelectItem>
                     <SelectItem value="Pasta">Pasta</SelectItem>
                     <SelectItem value="Breakfast">Breakfast</SelectItem>
+                    <SelectItem value="Canned">Canned Goods</SelectItem>
+                    <SelectItem value="Frozen">Frozen Foods</SelectItem>
+                    <SelectItem value="Snacks">Snacks</SelectItem>
+                    <SelectItem value="Beverages">Beverages</SelectItem>
+                    <SelectItem value="Condiments">Condiments</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -171,7 +465,25 @@ export default function Pantry() {
                 <TabsTrigger value="expired">Expired</TabsTrigger>
               </TabsList>
               <TabsContent value={activeTab} className="pt-4">
-                {filteredItems.length === 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-10 px-4">
+                    <RefreshCw className="mx-auto h-12 w-12 text-gray-400 animate-spin" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">Loading items...</h3>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-10 px-4">
+                    <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">Error loading items</h3>
+                    <p className="mt-1 text-sm text-gray-500">{error}</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={fetchPantryItems}
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                ) : filteredItems.length === 0 ? (
                   <div className="text-center py-10 px-4">
                     <RefreshCw className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No items found</h3>
@@ -205,12 +517,12 @@ export default function Pantry() {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredItems.map((item) => (
-                          <tr key={item.id}>
+                          <tr key={item._id}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {item.name}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.quantity} {item.unit}
+                              {formatQuantity(item.quantity, item.unit)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               <Badge variant="outline" className="capitalize">

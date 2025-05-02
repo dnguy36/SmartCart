@@ -129,13 +129,93 @@ export default function Scanner() {
     }
   };
 
-  const addToPantry = () => {
+  const addToPantry = async () => {
     if (!receiptData) return;
     
-    toast({
-      title: "Items Added to Pantry",
-      description: "All items have been added to your pantry inventory.",
-    });
+    try {
+      // Transform receipt items to pantry items
+      const pantryItems = receiptData.items.map(item => {
+        // Handle quantity based on the item type
+        let quantity: number | string = 1;
+        let unit = 'pcs';
+
+        if (item.quantity) {
+          // If quantity is a number, use it directly
+          const parsedNumber = Number(item.quantity);
+          if (!isNaN(parsedNumber)) {
+            quantity = parsedNumber;
+          } else {
+            // If quantity is a string like "by weight", use it as is
+            quantity = item.quantity;
+            unit = 'weight';
+          }
+        }
+
+        return {
+          name: item.name,
+          quantity,
+          unit,
+          location: 'pantry', // Default location
+          category: 'Other', // Default category
+          expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default expiry: 30 days from now
+        };
+      });
+
+      console.log('Sending items to pantry:', pantryItems);
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Check if user is logged in first
+      try {
+        const userResponse = await fetch('/api/auth/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!userResponse.ok) {
+          throw new Error('You must be logged in to add items to pantry');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      const response = await fetch('/api/pantry/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ items: pantryItems })
+      });
+
+      const data = await response.json();
+      console.log('Server response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add items to pantry');
+      }
+
+      toast({
+        title: "Items Added to Pantry",
+        description: "All items have been added to your pantry inventory.",
+      });
+
+      // Clear the receipt data after successful addition
+      setReceiptData(null);
+      setScanProgress(0);
+    } catch (error) {
+      console.error('Error adding items to pantry:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add items to pantry. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const rescanReceipt = () => {

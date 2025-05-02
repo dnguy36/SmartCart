@@ -1,8 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import dotenv from 'dotenv';
 
-const JWT_SECRET = 'your-secret-key'; // In production, use environment variable
+// Load environment variables
+dotenv.config();
+
+// Use the same JWT secret as in auth routes
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+
+// Log warning if using fallback in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('WARNING: JWT_SECRET not set in production environment. Using fallback secret.');
+}
 
 // Extend Express Request type to include user property
 declare global {

@@ -7,9 +7,50 @@ const router = express.Router();
 // Get JWT secret from environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
 
+// Log warning if using fallback in production
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('WARNING: JWT_SECRET not set in production environment');
+  console.error('WARNING: JWT_SECRET not set in production environment. Using fallback secret.');
 }
+
+// Creates an endpoint to check auth status
+router.get('/status', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+        isAuthenticated: false
+      });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      return res.json({
+        success: true,
+        message: 'Authenticated',
+        isAuthenticated: true
+      });
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token',
+        isAuthenticated: false
+      });
+    }
+  } catch (error) {
+    console.error('Auth status check error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      isAuthenticated: false
+    });
+  }
+});
 
 // Debug route
 router.get('/debug', (req, res) => {
@@ -19,7 +60,8 @@ router.get('/debug', (req, res) => {
       { method: 'POST', path: '/api/auth/register' },
       { method: 'POST', path: '/api/auth/login' },
       { method: 'GET', path: '/api/auth/me' },
-      { method: 'GET', path: '/api/auth/users-exist' }
+      { method: 'GET', path: '/api/auth/users-exist' },
+      { method: 'GET', path: '/api/auth/status' }
     ]
   });
 });
