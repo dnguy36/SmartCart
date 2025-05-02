@@ -53,8 +53,14 @@ interface RecipeWithIngredients {
 }
 
 const router = express.Router();
-const SPOONACULAR_API_KEY = 'bc20414d5174426e97ac1586dde1f49d';
+// Remove hardcoded API key and use environment variable instead
+const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
+
+// Add check for API key
+if (!SPOONACULAR_API_KEY) {
+  console.warn('⚠️ SPOONACULAR_API_KEY not found in environment variables. Recipe API will not work correctly.');
+}
 
 // Cache to store API responses to reduce rate limit usage
 const recipeCache = new Map();
@@ -63,6 +69,14 @@ const CACHE_EXPIRY = 60 * 60 * 1000; // 1 hour
 // Get recipe suggestions based on pantry items
 router.get('/suggestions', authenticateUser, async (req, res) => {
   try {
+    // Check for API key
+    if (!SPOONACULAR_API_KEY) {
+      return res.status(500).json({ 
+        message: 'Recipe API not configured. Contact administrator.',
+        recipes: []
+      });
+    }
+
     // Get user id from authenticated request
     const userId = req.user?._id;
     if (!userId) {
@@ -169,6 +183,13 @@ router.get('/suggestions', authenticateUser, async (req, res) => {
 // Get detailed information for a specific recipe
 router.get('/details/:id', authenticateUser, async (req, res) => {
   try {
+    // Check for API key
+    if (!SPOONACULAR_API_KEY) {
+      return res.status(500).json({ 
+        message: 'Recipe API not configured. Contact administrator.'
+      });
+    }
+    
     const recipeId = req.params.id;
     
     // Check if we have cached results
