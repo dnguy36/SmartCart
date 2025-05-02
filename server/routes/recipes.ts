@@ -53,7 +53,7 @@ interface RecipeWithIngredients {
 }
 
 const router = express.Router();
-// Remove hardcoded API key and use environment variable instead
+
 const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
 
