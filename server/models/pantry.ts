@@ -51,6 +51,10 @@ const pantryItemSchema = new mongoose.Schema({
   addedAt: {
     type: Date,
     default: Date.now
+  },
+  tips: {
+    type: String,
+    required: false
   }
 });
 

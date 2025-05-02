@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, RefreshCw, AlertCircle } from "lucide-react";
+import { Plus, Search, Filter, RefreshCw, AlertCircle, Pencil } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ interface PantryItem {
   category: string;
   expiry: string;
   addedAt: string;
+  tips?: string; // Storage tips may be available
 }
 
 export default function Pantry() {
@@ -41,6 +43,8 @@ export default function Pantry() {
     category: "Other",
     expiry: format(addDays(new Date(), 30), "yyyy-MM-dd"),
   });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingItems, setEditingItems] = useState<Record<string, PantryItem>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -239,6 +243,131 @@ export default function Pantry() {
     }
   };
 
+  const handleEditModeToggle = () => {
+    setIsEditMode(!isEditMode);
+    if (!isEditMode) {
+      // Initialize editing state for all items
+      const initialEditingState = filteredItems.reduce((acc, item) => {
+        acc[item._id] = { ...item };
+        return acc;
+      }, {} as Record<string, PantryItem>);
+      setEditingItems(initialEditingState);
+    } else {
+      // Clear editing state when exiting edit mode
+      setEditingItems({});
+    }
+  };
+
+  const handleItemChange = (id: string, field: keyof PantryItem, value: any) => {
+    setEditingItems(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      // Save all modified items
+      const savePromises = Object.entries(editingItems).map(async ([id, item]) => {
+        const response = await fetch(`/api/pantry/items/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            location: item.location,
+            category: item.category,
+            expiry: item.expiry
+          })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to update item');
+        }
+
+        return response.json();
+      });
+
+      await Promise.all(savePromises);
+
+      toast({
+        title: "Changes Saved",
+        description: "All items have been updated successfully.",
+      });
+
+      // Exit edit mode and refresh the list
+      setIsEditMode(false);
+      setEditingItems({});
+      fetchPantryItems();
+    } catch (err) {
+      console.error('Error saving changes:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save changes",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!isEditMode) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      // Optimistically update the UI
+      setPantryItems(prevItems => prevItems.filter(item => item._id !== id));
+      setEditingItems(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+
+      const response = await fetch(`/api/pantry/items/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        // If the delete failed, revert the optimistic update
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to delete item');
+      }
+
+      toast({
+        title: "Item Deleted",
+        description: "Item has been removed from your pantry.",
+      });
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      // Revert the optimistic update on error
+      fetchPantryItems();
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete item",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -250,126 +379,145 @@ export default function Pantry() {
               Track, organize, and manage your food inventory
             </p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" /> Add Item
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Item</DialogTitle>
-                <DialogDescription>
-                  Add a new item to your pantry inventory.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={newItem.name}
-                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                    className="col-span-3"
-                    placeholder="Item name"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="quantity" className="text-right">
-                    Quantity
-                  </Label>
-                  <Input
-                    id="quantity"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
-                    className="col-span-3"
-                    placeholder="Quantity"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="unit" className="text-right">
-                    Unit
-                  </Label>
-                  <Select value={newItem.unit} onValueChange={(value) => setNewItem({...newItem, unit: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pcs">Pieces</SelectItem>
-                      <SelectItem value="lbs">Pounds</SelectItem>
-                      <SelectItem value="oz">Ounces</SelectItem>
-                      <SelectItem value="kg">Kilograms</SelectItem>
-                      <SelectItem value="g">Grams</SelectItem>
-                      <SelectItem value="boxes">Boxes</SelectItem>
-                      <SelectItem value="cans">Cans</SelectItem>
-                      <SelectItem value="bottles">Bottles</SelectItem>
-                      <SelectItem value="weight">By Weight</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="location" className="text-right">
-                    Location
-                  </Label>
-                  <Select value={newItem.location} onValueChange={(value) => setNewItem({...newItem, location: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pantry">Pantry</SelectItem>
-                      <SelectItem value="refrigerator">Refrigerator</SelectItem>
-                      <SelectItem value="freezer">Freezer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Category
-                  </Label>
-                  <Select value={newItem.category} onValueChange={(value) => setNewItem({...newItem, category: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Produce">Produce</SelectItem>
-                      <SelectItem value="Dairy">Dairy</SelectItem>
-                      <SelectItem value="Meat">Meat</SelectItem>
-                      <SelectItem value="Bakery">Bakery</SelectItem>
-                      <SelectItem value="Grains">Grains</SelectItem>
-                      <SelectItem value="Pasta">Pasta</SelectItem>
-                      <SelectItem value="Breakfast">Breakfast</SelectItem>
-                      <SelectItem value="Canned">Canned Goods</SelectItem>
-                      <SelectItem value="Frozen">Frozen Foods</SelectItem>
-                      <SelectItem value="Snacks">Snacks</SelectItem>
-                      <SelectItem value="Beverages">Beverages</SelectItem>
-                      <SelectItem value="Condiments">Condiments</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="expiry" className="text-right">
-                    Expiry Date
-                  </Label>
-                  <Input
-                    id="expiry"
-                    type="date"
-                    value={newItem.expiry}
-                    onChange={(e) => setNewItem({...newItem, expiry: e.target.value})}
-                    className="col-span-3"
-                    min={format(new Date(), "yyyy-MM-dd")}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={addItem} disabled={!newItem.name}>Add to Pantry</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-2">
+            {isEditMode ? (
+              <>
+                <Button variant="outline" onClick={() => setIsEditMode(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveChanges}>
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={handleEditModeToggle}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Mode
+                </Button>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-primary hover:bg-primary/90">
+                      <Plus className="mr-2 h-4 w-4" /> Add Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Item</DialogTitle>
+                      <DialogDescription>
+                        Add a new item to your pantry inventory.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">
+                          Name
+                        </Label>
+                        <Input
+                          id="name"
+                          value={newItem.name}
+                          onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                          className="col-span-3"
+                          placeholder="Item name"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="quantity" className="text-right">
+                          Quantity
+                        </Label>
+                        <Input
+                          id="quantity"
+                          value={newItem.quantity}
+                          onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
+                          className="col-span-3"
+                          placeholder="Quantity"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="unit" className="text-right">
+                          Unit
+                        </Label>
+                        <Select value={newItem.unit} onValueChange={(value) => setNewItem({...newItem, unit: value})}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pcs">Pieces</SelectItem>
+                            <SelectItem value="lbs">Pounds</SelectItem>
+                            <SelectItem value="oz">Ounces</SelectItem>
+                            <SelectItem value="kg">Kilograms</SelectItem>
+                            <SelectItem value="g">Grams</SelectItem>
+                            <SelectItem value="boxes">Boxes</SelectItem>
+                            <SelectItem value="cans">Cans</SelectItem>
+                            <SelectItem value="bottles">Bottles</SelectItem>
+                            <SelectItem value="weight">By Weight</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="location" className="text-right">
+                          Location
+                        </Label>
+                        <Select value={newItem.location} onValueChange={(value) => setNewItem({...newItem, location: value})}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pantry">Pantry</SelectItem>
+                            <SelectItem value="refrigerator">Refrigerator</SelectItem>
+                            <SelectItem value="freezer">Freezer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="category" className="text-right">
+                          Category
+                        </Label>
+                        <Select value={newItem.category} onValueChange={(value) => setNewItem({...newItem, category: value})}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Produce">Produce</SelectItem>
+                            <SelectItem value="Dairy">Dairy</SelectItem>
+                            <SelectItem value="Meat">Meat</SelectItem>
+                            <SelectItem value="Bakery">Bakery</SelectItem>
+                            <SelectItem value="Grains">Grains</SelectItem>
+                            <SelectItem value="Pasta">Pasta</SelectItem>
+                            <SelectItem value="Breakfast">Breakfast</SelectItem>
+                            <SelectItem value="Canned">Canned Goods</SelectItem>
+                            <SelectItem value="Frozen">Frozen Foods</SelectItem>
+                            <SelectItem value="Snacks">Snacks</SelectItem>
+                            <SelectItem value="Beverages">Beverages</SelectItem>
+                            <SelectItem value="Condiments">Condiments</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="expiry" className="text-right">
+                          Expiry Date
+                        </Label>
+                        <Input
+                          id="expiry"
+                          type="date"
+                          value={newItem.expiry}
+                          onChange={(e) => setNewItem({...newItem, expiry: e.target.value})}
+                          className="col-span-3"
+                          min={format(new Date(), "yyyy-MM-dd")}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={addItem} disabled={!newItem.name}>Add to Pantry</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -495,53 +643,168 @@ export default function Pantry() {
                   </div>
                 ) : (
                   <div className="border rounded-lg overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Item
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Quantity
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Location
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Category
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredItems.map((item) => (
-                          <tr key={item._id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {item.name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {formatQuantity(item.quantity, item.unit)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <Badge variant="outline" className="capitalize">
-                                {item.location}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.category}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getExpiryStatusColor(item.daysUntilExpiry)}`}>
-                                {item.daysUntilExpiry < 0 && <AlertCircle className="mr-1 h-3 w-3" />}
-                                {getExpiryStatusText(item.daysUntilExpiry)}
-                              </span>
-                            </td>
+                    <div className="max-h-[600px] overflow-y-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Item
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Quantity
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Location
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            {isEditMode && (
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            )}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          <AnimatePresence>
+                            {filteredItems.map((item) => (
+                              <motion.tr
+                                key={item._id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {isEditMode ? (
+                                    <Input
+                                      value={editingItems[item._id]?.name || item.name}
+                                      onChange={(e) => handleItemChange(item._id, 'name', e.target.value)}
+                                      className="w-full"
+                                    />
+                                  ) : (
+                                    item.name
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {isEditMode ? (
+                                    <div className="flex gap-2">
+                                      <Input
+                                        value={editingItems[item._id]?.quantity || item.quantity}
+                                        onChange={(e) => handleItemChange(item._id, 'quantity', e.target.value)}
+                                        className="w-24"
+                                      />
+                                      <Select
+                                        value={editingItems[item._id]?.unit || item.unit}
+                                        onValueChange={(value) => handleItemChange(item._id, 'unit', value)}
+                                      >
+                                        <SelectTrigger className="w-24">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pcs">Pieces</SelectItem>
+                                          <SelectItem value="lbs">Pounds</SelectItem>
+                                          <SelectItem value="oz">Ounces</SelectItem>
+                                          <SelectItem value="kg">Kilograms</SelectItem>
+                                          <SelectItem value="g">Grams</SelectItem>
+                                          <SelectItem value="boxes">Boxes</SelectItem>
+                                          <SelectItem value="cans">Cans</SelectItem>
+                                          <SelectItem value="bottles">Bottles</SelectItem>
+                                          <SelectItem value="weight">By Weight</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  ) : (
+                                    formatQuantity(item.quantity, item.unit)
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {isEditMode ? (
+                                    <Select
+                                      value={editingItems[item._id]?.location || item.location}
+                                      onValueChange={(value) => handleItemChange(item._id, 'location', value)}
+                                    >
+                                      <SelectTrigger className="w-32">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="pantry">Pantry</SelectItem>
+                                        <SelectItem value="refrigerator">Refrigerator</SelectItem>
+                                        <SelectItem value="freezer">Freezer</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Badge variant="outline" className="capitalize">
+                                      {item.location}
+                                    </Badge>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {isEditMode ? (
+                                    <Select
+                                      value={editingItems[item._id]?.category || item.category}
+                                      onValueChange={(value) => handleItemChange(item._id, 'category', value)}
+                                    >
+                                      <SelectTrigger className="w-32">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Produce">Produce</SelectItem>
+                                        <SelectItem value="Dairy">Dairy</SelectItem>
+                                        <SelectItem value="Meat">Meat</SelectItem>
+                                        <SelectItem value="Bakery">Bakery</SelectItem>
+                                        <SelectItem value="Grains">Grains</SelectItem>
+                                        <SelectItem value="Pasta">Pasta</SelectItem>
+                                        <SelectItem value="Breakfast">Breakfast</SelectItem>
+                                        <SelectItem value="Canned">Canned Goods</SelectItem>
+                                        <SelectItem value="Frozen">Frozen Foods</SelectItem>
+                                        <SelectItem value="Snacks">Snacks</SelectItem>
+                                        <SelectItem value="Beverages">Beverages</SelectItem>
+                                        <SelectItem value="Condiments">Condiments</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    item.category
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {isEditMode ? (
+                                    <Input
+                                      type="date"
+                                      value={format(new Date(editingItems[item._id]?.expiry || item.expiry), "yyyy-MM-dd")}
+                                      onChange={(e) => handleItemChange(item._id, 'expiry', e.target.value)}
+                                      className="w-32"
+                                      min={format(new Date(), "yyyy-MM-dd")}
+                                    />
+                                  ) : (
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getExpiryStatusColor(item.daysUntilExpiry)}`}>
+                                      {item.daysUntilExpiry < 0 && <AlertCircle className="mr-1 h-3 w-3" />}
+                                      {getExpiryStatusText(item.daysUntilExpiry)}
+                                    </span>
+                                  )}
+                                </td>
+                                {isEditMode && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDelete(item._id)}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </td>
+                                )}
+                              </motion.tr>
+                            ))}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </TabsContent>

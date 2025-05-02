@@ -157,7 +157,7 @@ export default function Scanner() {
           unit,
           location: 'pantry', // Default location
           category: 'Other', // Default category
-          expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default expiry: 30 days from now
+          // Let the server determine the recommended expiry date based on the item type
         };
       });
 
@@ -168,20 +168,19 @@ export default function Scanner() {
         throw new Error('Authentication token not found');
       }
 
-      // Check if user is logged in first
-      try {
-        const userResponse = await fetch('/api/auth/status', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!userResponse.ok) {
-          throw new Error('You must be logged in to add items to pantry');
+      // First check if the token is valid
+      const authCheck = await fetch('/api/auth/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        throw new Error('Authentication required. Please log in.');
+      });
+      
+      const authData = await authCheck.json();
+      
+      if (!authCheck.ok || !authData.isAuthenticated) {
+        // Clear invalid token
+        localStorage.removeItem('token');
+        throw new Error('Your session has expired. Please log in again.');
       }
 
       const response = await fetch('/api/pantry/items', {
@@ -202,7 +201,8 @@ export default function Scanner() {
 
       toast({
         title: "Items Added to Pantry",
-        description: "All items have been added to your pantry inventory.",
+        description: "All items have been added to your pantry inventory with recommended expiry dates.",
+        duration: 5000,
       });
 
       // Clear the receipt data after successful addition
