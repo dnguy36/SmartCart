@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth";
 import protectedRoutes from "./routes/protected";
 import receiptRoutes from "./routes/receipts";
 import pantryRoutes from "./routes/pantry";
+import recipeRoutes from "./routes/recipes";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
@@ -132,6 +133,9 @@ app.use('/api/receipts', receiptRoutes);
 
 // Register pantry routes
 app.use('/api/pantry', pantryRoutes);
+
+// Register recipe routes
+app.use('/api/recipes', recipeRoutes);
 
 function startServer() {
   // Create and start the server
