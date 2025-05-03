@@ -52,8 +52,15 @@ export default function Recipes() {
 
   // Fetch recipes based on pantry items
   useEffect(() => {
+    console.log('Initial fetch of recipes');
     fetchRecipes();
   }, []);
+
+  // Refresh recipes when dietary restrictions change
+  useEffect(() => {
+    console.log('Dietary restrictions changed, fetching new recipes:', dietaryRestrictions);
+    fetchRecipes();
+  }, [dietaryRestrictions]);
 
   // Fetch recipe details when a recipe is selected
   useEffect(() => {
@@ -65,30 +72,19 @@ export default function Recipes() {
   }, [selectedRecipe]);
 
   const fetchRecipes = async () => {
-    setIsLoading(true);
-    setError(null);
     try {
+      setIsLoading(true);
+      setError(null);
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('Authentication required. Please log in.');
       }
 
-      // First check if the token is valid
-      const authCheck = await fetch('/api/auth/status', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const authData = await authCheck.json();
-      
-      if (!authCheck.ok || !authData.isAuthenticated) {
-        // Clear invalid token
-        localStorage.removeItem('token');
-        throw new Error('Your session has expired. Please log in again.');
-      }
+      const url = `/api/recipes/suggestions${dietaryRestrictions.length > 0 ? `?dietaryRestrictions=${dietaryRestrictions.join(',')}` : ''}`;
+      console.log('Making API request to:', url);
+      console.log('Current dietary restrictions:', dietaryRestrictions);
 
-      const response = await fetch('/api/recipes/suggestions', {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -96,17 +92,19 @@ export default function Recipes() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || 'Failed to fetch recipe suggestions');
+        console.error('API request failed:', data);
+        throw new Error(data.message || 'Failed to fetch recipes');
       }
 
       const data = await response.json();
-      setRecipes(data.recipes || []);
+      console.log('API response received:', data);
+      setRecipes(data.recipes);
     } catch (err) {
-      console.error('Error fetching recipe suggestions:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      console.error('Error fetching recipes:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch recipes');
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to fetch recipe suggestions",
+        description: err instanceof Error ? err.message : "Failed to fetch recipes",
         variant: "destructive"
       });
     } finally {
@@ -144,23 +142,45 @@ export default function Recipes() {
     }
   };
 
+  // Add effect to log when dietary restrictions change
+  useEffect(() => {
+    console.log('Dietary restrictions state changed:', dietaryRestrictions);
+  }, [dietaryRestrictions]);
+
+  // Add effect to log when recipes change
+  useEffect(() => {
+    console.log('Recipes state changed:', recipes);
+  }, [recipes]);
+
   // Filter recipes based on search query and filters
-  const filteredRecipes = recipes.filter(recipe => 
-    recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (difficultyFilter === "all" || recipe.difficulty.toLowerCase() === difficultyFilter.toLowerCase()) &&
-    (timeFilter === "all" || 
+  const filteredRecipes = recipes.filter(recipe => {
+    const matchesSearch = recipe.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDifficulty = difficultyFilter === "all" || recipe.difficulty.toLowerCase() === difficultyFilter.toLowerCase();
+    const matchesTime = timeFilter === "all" || 
       (timeFilter === "quick" && recipe.cookingTime <= 15) ||
       (timeFilter === "medium" && recipe.cookingTime > 15 && recipe.cookingTime <= 30) ||
-      (timeFilter === "long" && recipe.cookingTime > 30)
-    )
-  );
+      (timeFilter === "long" && recipe.cookingTime > 30);
+    
+    console.log('Filtering recipe:', recipe.name, {
+      matchesSearch,
+      matchesDifficulty,
+      matchesTime,
+      searchQuery,
+      difficultyFilter,
+      timeFilter,
+      dietaryRestrictions: recipe.diets
+    });
+    
+    return matchesSearch && matchesDifficulty && matchesTime;
+  });
 
   const toggleDietaryRestriction = (id: string) => {
-    setDietaryRestrictions(prev => 
-      prev.includes(id) 
-        ? prev.filter(item => item !== id) 
-        : [...prev, id]
-    );
+    console.log('Toggling dietary restriction:', id);
+    const newRestrictions = dietaryRestrictions.includes(id)
+      ? dietaryRestrictions.filter(item => item !== id)
+      : [...dietaryRestrictions, id];
+    console.log('Setting new dietary restrictions:', newRestrictions);
+    setDietaryRestrictions(newRestrictions);
   };
 
   const saveRecipe = (id: number) => {
@@ -238,21 +258,32 @@ export default function Recipes() {
                 <div>
                   <h3 className="text-sm font-medium mb-3">Dietary Restrictions</h3>
                   <div className="space-y-3">
-                    {DIETARY_RESTRICTIONS.map(restriction => (
-                      <div key={restriction.id} className="flex items-center space-x-3">
-                        <Switch 
-                          id={restriction.id}
-                          checked={dietaryRestrictions.includes(restriction.id)}
-                          onCheckedChange={() => toggleDietaryRestriction(restriction.id)}
-                        />
-                        <label
-                          htmlFor={restriction.id}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {restriction.label}
-                        </label>
-                      </div>
-                    ))}
+                    {DIETARY_RESTRICTIONS.map(restriction => {
+                      const isChecked = dietaryRestrictions.includes(restriction.id);
+                      console.log(`Rendering switch for ${restriction.id}, checked:`, isChecked);
+                      return (
+                        <div key={restriction.id} className="flex items-center space-x-3">
+                          <Switch 
+                            id={restriction.id}
+                            checked={isChecked}
+                            onCheckedChange={(checked) => {
+                              console.log(`Switch ${restriction.id} changed to:`, checked);
+                              if (checked) {
+                                setDietaryRestrictions(prev => [...prev, restriction.id]);
+                              } else {
+                                setDietaryRestrictions(prev => prev.filter(id => id !== restriction.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={restriction.id}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {restriction.label}
+                          </label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
