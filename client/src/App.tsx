@@ -11,6 +11,7 @@ import Recipes from "@/pages/Recipes";
 import Prices from "@/pages/Prices";
 import Analytics from "@/pages/Analytics";
 import Auth from "@/pages/Auth";
+import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/recipes" component={Recipes} />
       <Route path="/prices" component={Prices} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

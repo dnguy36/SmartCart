@@ -18,9 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
 
   // Quick access features
   const quickAccessFeatures = [
@@ -251,19 +253,23 @@ export default function Dashboard() {
             <CardContent>
               <div className="flex items-center mb-6">
                 <Avatar className="h-16 w-16 mr-4">
-                  <AvatarImage src="https://i.pravatar.cc/150?img=32" alt="User" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src="" alt={user?.username} />
+                  <AvatarFallback className="bg-primary text-white">
+                    {user?.username?.substring(0, 2).toUpperCase() || "SC"}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium">Jane Doe</h3>
-                  <p className="text-sm text-gray-500">jane.doe@example.com</p>
+                  <h3 className="font-medium">{user?.username || "User"}</h3>
+                  <p className="text-sm text-gray-500">{user?.email || "No email"}</p>
                 </div>
               </div>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
+                <Link href="/profile">
+                  <Button variant="outline" className="w-full justify-start" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                </Link>
                 <Button variant="outline" className="w-full justify-start" size="sm">
                   <Settings className="h-4 w-4 mr-2" />
                   Preferences
