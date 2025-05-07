@@ -236,6 +236,16 @@ class TextractService {
     return receiptData;
   }
 
+  private extractPrice(text: string): string | null {
+    const match = text.match(/\$?\s*\d+\.\d{2}/);
+    return match ? match[0].replace(/\s+/g, '') : null;
+  }
+
+  private looksLikePrice(text: string): boolean {
+    return /^\$?\s*\d+\.\d{2}$/.test(text.trim()) || 
+           /^\d+\.\d{2}\$?$/.test(text.trim());
+  }
+
   /**
    * Get text from a block using its relationships
    */
