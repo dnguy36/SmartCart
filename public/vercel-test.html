@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vercel Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #0070f3;
+        }
+        .card {
+            border: 1px solid #eaeaea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #0070f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #0051a2;
+        }
+        #api-result {
+            margin-top: 20px;
+            font-family: monospace;
+            text-align: left;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SmartCart Vercel Deployment Test</h1>
+    
+    <div class="card">
+        <h2>Static Content</h2>
+        <p>If you can see this page, static content is working correctly!</p>
+    </div>
+    
+    <div class="card">
+        <h2>API Test</h2>
+        <p>Test the API endpoints:</p>
+        <button onclick="testHealthAPI()">Test Health API</button>
+        <button onclick="testTestAPI()">Test Test API</button>
+        <div id="api-result">Results will appear here...</div>
+    </div>
+
+    <script>
+        async function testHealthAPI() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                document.getElementById('api-result').innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('api-result').innerText = 'Error: ' + error.message;
+            }
+        }
+
+        async function testTestAPI() {
+            try {
+                const response = await fetch('/api/test');
+                const data = await response.json();
+                document.getElementById('api-result').innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('api-result').innerText = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 
