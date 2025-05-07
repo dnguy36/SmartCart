@@ -10,6 +10,8 @@ import pantryRoutes from "./routes/pantry";
 import recipeRoutes from "./routes/recipes";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -137,6 +139,9 @@ app.use('/api/pantry', pantryRoutes);
 // Register recipe routes
 app.use('/api/recipes', recipeRoutes);
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 function startServer() {
   // Create and start the server
   (async () => {
@@ -165,56 +170,22 @@ function startServer() {
       if (app.get("env") === "development") {
         await setupVite(app, server);
       } else {
-        serveStatic(app);
+        // Serve static files from the dist directory in production
+        app.use(express.static(path.join(__dirname, '../../dist')));
+        
+        // Handle client-side routing
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(__dirname, '../../dist/index.html'));
+        });
       }
       
       // ALWAYS serve the app on port 5000
       // this serves both the API and the client.
       // It is the only port that is not firewalled.
-      const port = 5000;
+      const port = process.env.PORT || 5000;
       server.listen(port, () => {
-        // Log all registered routes
-        console.log('Server started on port', port);
-        console.log('Registered endpoints:');
-        
-        // Log routes in a more readable format
-        const routes: {method: string, path: string}[] = [];
-        
-        app._router.stack.forEach((middleware: any) => {
-          if (middleware.route) {
-            console.log(`${Object.keys(middleware.route.methods)[0].toUpperCase()}: ${middleware.route.path}`);
-            routes.push({
-              method: Object.keys(middleware.route.methods)[0].toUpperCase(),
-              path: middleware.route.path
-            });
-          } else if (middleware.name === 'router') {
-            console.log(`Router: ${middleware.regexp}`);
-            
-            // Try to log router paths
-            try {
-              if (middleware.handle && middleware.handle.stack) {
-                middleware.handle.stack.forEach((handler: any) => {
-                  if (handler.route) {
-                    const method = Object.keys(handler.route.methods)[0].toUpperCase();
-                    console.log(`  ${method}: ${handler.route.path}`);
-                    routes.push({
-                      method,
-                      path: handler.route.path
-                    });
-                  }
-                });
-              }
-            } catch (err) {
-              console.log('Could not log router paths:', err);
-            }
-          }
-        });
-        
-        // Log in sorted order for easier reading
-        console.log('\nAll routes:');
-        routes
-          .sort((a, b) => a.path.localeCompare(b.path))
-          .forEach(r => console.log(`${r.method.padEnd(6)}: ${r.path}`));
+        console.log(`Server started on port ${port}`);
+        console.log('Environment:', app.get("env"));
       });
     } catch (error) {
       console.error('Error creating server:', error);
