@@ -27,6 +27,10 @@ async function checkCollections() {
     // Get database
     const db = mongoose.connection.db;
     
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    
     // List all collections
     const collections = await db.listCollections().toArray();
     console.log('Collections in database:');

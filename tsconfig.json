@@ -17,8 +17,12 @@
     "noFallthroughCasesInSwitch": true,
     "outDir": "dist",
     "esModuleInterop": true,
-    "allowJs": true
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    }
   },
-  "include": ["src", "server"],
+  "include": ["src", "server", "shared"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

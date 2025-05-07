@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { createServer as createHttpServer, type Server } from "http";
+import { createServer as createHttpServer } from "http";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite } from "./vite";
 import { connectDB } from "./db/mongodb";
 import authRoutes from "./routes/auth";
 import protectedRoutes from "./routes/protected";
@@ -67,17 +67,17 @@ app.use((req, res, next) => {
 });
 
 // Debug route - Must be defined before other middleware
-app.get('/api/debug/routes', (req, res) => {
+app.get('/api/debug/routes', (_req, res) => {
   console.log('Debugging routes...');
   const routes: {method: string, path: string}[] = [];
   
   app._router.stack.forEach((middleware: any) => {
-    if (middleware.route) { // routes registered directly on the app
+    if (middleware.route) {
       routes.push({
         method: Object.keys(middleware.route.methods)[0].toUpperCase(),
         path: middleware.route.path
       });
-    } else if (middleware.name === 'router') { // router middleware
+    } else if (middleware.name === 'router') {
       middleware.handle.stack.forEach((handler: any) => {
         if (handler.route) {
           const method = Object.keys(handler.route.methods)[0].toUpperCase();
