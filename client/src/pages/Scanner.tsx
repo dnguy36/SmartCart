@@ -3,6 +3,7 @@ import { Upload, Camera, RefreshCw, CheckCircle, Store, DollarSign, ShoppingCart
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -462,13 +463,27 @@ export default function Scanner() {
                 receiptHistory.map((receipt, index) => (
                   <div key={index} className="border rounded-lg p-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Receipt Image */}
-                      <div className="aspect-[4/5] relative">
-                        <img
-                          src={receipt.image}
-                          alt={`Receipt ${index + 1}`}
-                          className="object-cover rounded-lg w-full h-full"
-                        />
+                      {/* Receipt Icon and Modal */}
+                      <div className="flex items-center">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="rounded-full">
+                              <Receipt className="h-6 w-6" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                              <DialogTitle>Receipt Image</DialogTitle>
+                            </DialogHeader>
+                            <div className="relative aspect-[4/5] w-full">
+                              <img
+                                src={receipt.image}
+                                alt={`Receipt ${index + 1}`}
+                                className="object-contain rounded-lg w-full h-full"
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                       {/* Receipt Details */}
                       <div>
