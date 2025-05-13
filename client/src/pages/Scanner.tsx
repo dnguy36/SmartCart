@@ -24,6 +24,11 @@ export default function Scanner() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [receiptHistory, setReceiptHistory] = useState<Array<{
+    data: ReceiptData;
+    image: string;
+    timestamp: Date;
+  }>>([]);
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +117,13 @@ export default function Scanner() {
 
       setReceiptData(data.data);
       setScanProgress(100);
+
+      // Add to history
+      setReceiptHistory(prev => [...prev, {
+        data: data.data,
+        image: URL.createObjectURL(file),
+        timestamp: new Date()
+      }]);
 
       toast({
         title: "Receipt Scanned Successfully",
@@ -430,6 +442,56 @@ export default function Scanner() {
                   Track your grocery spending over time and identify opportunities to save.
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Receipt History */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Receipt History</CardTitle>
+            <CardDescription>
+              Previously scanned receipts and their details
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {receiptHistory.length === 0 ? (
+                <p className="text-center text-gray-500">No receipts scanned yet</p>
+              ) : (
+                receiptHistory.map((receipt, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Receipt Image */}
+                      <div className="aspect-[4/5] relative">
+                        <img
+                          src={receipt.image}
+                          alt={`Receipt ${index + 1}`}
+                          className="object-cover rounded-lg w-full h-full"
+                        />
+                      </div>
+                      {/* Receipt Details */}
+                      <div>
+                        <div className="mb-4">
+                          <h4 className="font-semibold">
+                            {receipt.data.merchantName || 'Unknown Store'}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {receipt.timestamp.toLocaleDateString()} at{' '}
+                            {receipt.timestamp.toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="font-medium">Items: {receipt.data.items.length}</p>
+                          <p className="font-medium">
+                            Total: {receipt.data.total ? formatPrice(receipt.data.total) : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
