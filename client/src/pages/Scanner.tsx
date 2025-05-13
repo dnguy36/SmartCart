@@ -30,7 +30,32 @@ export default function Scanner() {
     data: ReceiptData;
     image: string;
     timestamp: Date;
+    _id: string;
   }>>([]);
+
+  // Fetch receipt history on component mount
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/receipts/history', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setReceiptHistory(data.receipts.map((receipt: any) => ({
+            ...receipt,
+            timestamp: new Date(receipt.timestamp)
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching receipt history:', error);
+      }
+    };
+    fetchHistory();
+  }, []);
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

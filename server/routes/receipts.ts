@@ -1,9 +1,21 @@
+
 import express from 'express';
 import multer from 'multer';
 import { textractService } from '../services/textract';
 import { authenticateUser } from '../middleware/auth';
+import mongoose from 'mongoose';
 
 const router = express.Router();
+
+// Receipt schema
+const receiptSchema = new mongoose.Schema({
+  userId: String,
+  data: Object,
+  image: String,
+  timestamp: { type: Date, default: Date.now }
+});
+
+const Receipt = mongoose.model('Receipt', receiptSchema);
 
 // Configure multer for memory storage
 const upload = multer({
@@ -17,6 +29,16 @@ const upload = multer({
       return cb(new Error('Only image files are allowed!'));
     }
     cb(null, true);
+  }
+});
+
+// Route to get receipt history
+router.get('/history', authenticateUser, async (req, res) => {
+  try {
+    const receipts = await Receipt.find({ userId: req.user.id }).sort({ timestamp: -1 });
+    res.json({ success: true, receipts });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -44,22 +66,13 @@ router.post('/scan', authenticateUser, upload.single('receipt'), async (req, res
     console.log('Calling Textract service...');
     const receiptData = await textractService.analyzeReceipt(req.file.buffer);
     
-    console.log('=== Textract Processing Results ===');
-    console.log('Items found:', receiptData.items.length);
-    console.log('Items:', JSON.stringify(receiptData.items, null, 2));
-    console.log('Total:', receiptData.total);
-    console.log('Date:', receiptData.date);
-    console.log('Merchant:', receiptData.merchantName);
-    console.log('=== End Receipt Processing ===');
-
-    // Validate the response
-    if (!receiptData) {
-      console.log('Error: Invalid Textract response');
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to extract data from receipt'
-      });
-    }
+    // Save receipt to database
+    const receipt = new Receipt({
+      userId: req.user.id,
+      data: receiptData,
+      image: `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+    });
+    await receipt.save();
 
     res.json({
       success: true,
@@ -75,4 +88,4 @@ router.post('/scan', authenticateUser, upload.single('receipt'), async (req, res
   }
 });
 
-export default router; 
+export default router;
